@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -22,7 +23,6 @@
             line-height: 1.6;
         }
 
-        /* Navigation */
         nav {
             background: white;
             padding: 1rem 10%;
@@ -37,10 +37,9 @@
 
         .logo { font-weight: 700; color: var(--primary); font-size: 1.2rem; }
 
-        /* Panic Button - Safety Feature */
         .panic-btn {
             background: var(--danger);
-            color: beige;
+            color: white;
             padding: 8px 15px;
             border-radius: 5px;
             text-decoration: none;
@@ -48,7 +47,6 @@
             font-weight: bold;
         }
 
-        /* Hero Section */
         .hero {
             background: linear-gradient(135deg, var(--primary), #003366);
             color: white;
@@ -56,7 +54,6 @@
             text-align: center;
         }
 
-        /* Main Container */
         .container {
             max-width: 800px;
             margin: -40px auto 40px;
@@ -74,7 +71,7 @@
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            box-sizing: border-box; /* Crucial for layout */
+            box-sizing: border-box;
         }
 
         textarea { height: 120px; resize: vertical; }
@@ -94,7 +91,6 @@
 
         .btn-submit:hover { background: #004494; }
 
-        /* Status Check Section */
         .status-check {
             margin-top: 30px;
             padding-top: 20px;
@@ -102,9 +98,8 @@
             text-align: center;
         }
 
-        /* Results Dashboard (For Counselor View) */
         .counselor-preview {
-            display: none; /* Hidden by default */
+            display: none;
             margin-top: 40px;
             background: #e9ecef;
             padding: 20px;
@@ -135,14 +130,12 @@
 
     <nav>
         <div class="logo">🛡️ CIPHER</div>
-        <a href="https://google.com" class="panic-btn">EXIT</a>
+        <a href="https://google.com" class="panic-btn">EXIT (ESC)</a>
     </nav>
 
     <header class="hero">
         <h1>Anonymous Reporting System</h1>
         <p>Speak Up without standing up</p>
-
-
     </header>
 
     <div class="container">
@@ -175,66 +168,38 @@
             <p>Write down this Reference ID to check status later:</p>
             <span id="referenceID" class="id-badge"></span>
             <p>This ID is the only way to track your report.</p>
-            <button onclick="location.reload()" style="background:none; border:1px solid #155724; cursor:pointer;">New Report</button>
+            <button onclick="location.reload()" style="background:none; border:1px solid #155724; cursor:pointer; padding: 5px 10px; border-radius: 4px;">New Report</button>
         </div>
 
         <div class="status-check">
             <p>Already submitted? <a href="#" onclick="toggleCounselor()">Admin View (For Demo)</a></p>
         </div>
 
-       <div id="counselorView" class="counselor-preview">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>Guidance Counselor Dashboard</h3>
-        <button onclick="downloadCSV()" style="background: var(--secondary); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">
-            📥 Download Reports (.CSV)
-        </button>
+        <div id="counselorView" class="counselor-preview">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Counselor Dashboard</h3>
+                <button onclick="downloadCSV()" style="background: var(--secondary); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    📥 Download CSV
+                </button>
+            </div>
+            <div id="reportList">
+                <p>Loading reports from server...</p>
+            </div>
+        </div>
     </div>
-    <div id="reportList">
-        <p>No reports received yet.</p>
-    </div>
-</div>
+
     <script>
+        // API URL - Ensure your server.js is running on this port
+        const API_BASE = 'http://localhost:3000/api';
 
-function downloadCSV() {
-    if (reports.length === 0) {
-        alert("No reports available to download.");
-        return;
-    }
-
-    // 1. Create the CSV Header
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Reference ID,Type,Date/Time,Description,Status\n";
-
-    // 2. Add the data rows
-    reports.forEach(r => {
-        // We clean the description to remove commas so they don't break the CSV columns
-        let cleanDesc = r.description.replace(/,/g, " "); 
-        let row = `${r.id},${r.type},${r.timestamp},${cleanDesc},${r.status}`;
-        csvContent += row + "\n";
-    });
-
-    // 3. Create a hidden link and "click" it to trigger the download
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "SHS_Bullying_Reports_2026.csv");
-    document.body.appendChild(link);
-
-    link.click();
-    document.body.removeChild(link);
-}
-        // 1. Data Storage (Simulating a database)
-        let reports = JSON.parse(localStorage.getItem('shs_reports')) || [];
-
-        // 2. Submission Logic
-        function handleSubmission() {
+        // 1. Student Submission Logic
+        async function handleSubmission() {
             const type = document.getElementById('incidentType').value;
             const date = document.getElementById('incidentDate').value;
             const desc = document.getElementById('description').value;
 
             if(!desc) { alert("Please provide details."); return; }
 
-            // Create unique ID
             const refID = "SHS-" + Math.random().toString(36).substr(2, 6).toUpperCase();
 
             const newReport = {
@@ -246,40 +211,88 @@ function downloadCSV() {
                 status: "Pending Investigation"
             };
 
-            // Save to "Database"
-            reports.push(newReport);
-            localStorage.setItem('shs_reports', JSON.stringify(reports));
+            try {
+                // Fixed Fetch Syntax
+                const response = await fetch(`${API_BASE}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newReport)
+                });
 
-            // Show Success
-            document.getElementById('reportFormArea').style.display = 'none';
-            document.getElementById('successArea').style.display = 'block';
-            document.getElementById('referenceID').innerText = refID;
-            
-            updateAdminDashboard();
+                if (response.ok) {
+                    document.getElementById('reportFormArea').style.display = 'none';
+                    document.getElementById('successArea').style.display = 'block';
+                    document.getElementById('referenceID').innerText = refID;
+                }
+            } catch (error) {
+                alert("Submission Failed! Ensure 'node server.js' is running in your terminal.");
+                console.error("Connection error:", error);
+            }
         }
 
-        // 3. Admin View Toggle (For your Capstone defense)
+        // 2. Admin View Toggle
         function toggleCounselor() {
             const view = document.getElementById('counselorView');
             view.style.display = view.style.display === 'none' ? 'block' : 'none';
-            updateAdminDashboard();
+            if (view.style.display === 'block') updateAdminDashboard();
         }
 
-        function updateAdminDashboard() {
+        // 3. Fetch and Show Reports in Dashboard
+        async function updateAdminDashboard() {
             const list = document.getElementById('reportList');
-            if(reports.length === 0) return;
+            try {
+                const response = await fetch(`${API_BASE}/reports`);
+                const reports = await response.json();
 
-            list.innerHTML = reports.map(r => `
-                <div style="background:white; padding:10px; margin-bottom:10px; border-radius:4px; border-left:4px solid var(--primary)">
-                    <strong>ID: ${r.id}</strong> | <small>${r.timestamp}</small><br>
-                    <strong>Type:</strong> ${r.type.toUpperCase()}<br>
-                    <p style="font-size:0.9rem">${r.description}</p>
-                    <span style="color:var(--primary); font-size:0.8rem">Status: ${r.status}</span>
-                </div>
-            `).join('');
+                if(reports.length === 0) {
+                    list.innerHTML = "<p>No reports in the database.</p>";
+                    return;
+                }
+
+                list.innerHTML = reports.map(r => `
+                    <div style="background:white; padding:15px; margin-bottom:10px; border-radius:4px; border-left:4px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                        <strong>ID: ${r.id}</strong> | <small>${r.timestamp}</small><br>
+                        <strong>Type:</strong> ${r.type.toUpperCase()}<br>
+                        <p style="font-size:0.9rem; margin: 10px 0;">${r.description}</p>
+                        <span style="color:var(--primary); font-weight:bold; font-size:0.8rem">Status: ${r.status}</span>
+                    </div>
+                `).reverse().join('');
+            } catch (error) {
+                list.innerHTML = "<p style='color:red'>Error connecting to database.</p>";
+            }
         }
 
-        // 4. Panic Button Keyboard Shortcut (ESC Key)
+        // 4. Export to CSV Logic
+        async function downloadCSV() {
+            try {
+                const response = await fetch(`${API_BASE}/reports`);
+                const reports = await response.json();
+
+                if (reports.length === 0) {
+                    alert("No reports available to download.");
+                    return;
+                }
+
+                let csvContent = "Reference ID,Type,Date,Description,Status\n";
+                reports.forEach(r => {
+                    let cleanDesc = r.description.replace(/,/g, " ").replace(/\n/g, " "); 
+                    csvContent += `${r.id},${r.type},${r.timestamp},"${cleanDesc}",${r.status}\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", "CIPHER_Reports_2026.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                alert("Could not fetch data for download.");
+            }
+        }
+
+        // 5. Panic Button Keyboard Shortcut (ESC Key)
         document.addEventListener('keydown', (e) => {
             if (e.key === "Escape") {
                 window.location.href = "https://google.com";
